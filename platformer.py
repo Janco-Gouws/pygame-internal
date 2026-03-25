@@ -39,6 +39,7 @@ class Player():
         self.rect.y = y
         self.vel_y = 0
         self.jumped = False
+        self.direction = 0
 
     def update(self):
         dx = 0
@@ -55,14 +56,18 @@ class Player():
         if key[pygame.K_LEFT]:
             dx -= 5
             self.counter += 1
+            self.direction = -1
         if key[pygame.K_RIGHT]:
             dx += 5
             self.counter += 1
+            self.direction = 1
         if key[pygame.K_LEFT] == False and key[pygame.K_RIGHT] == False:
             self.counter = 0
             self.index = 0
-            self.image = self.images_right[self.index]
-
+            if self.direction == 1:
+                self.image = self.images_right[self.index]
+            if self.direction == -1:
+                self.image = self.images_left[self.index]
 
         #handle animation
         if self.counter > walk_cooldown:
@@ -70,7 +75,10 @@ class Player():
             self.index += 1                
             if self.index >= len(self.images_right):
                 self.index = 0
-            self.image = self.images_right[self.index]
+            if self.direction == 1:
+                self.image = self.images_right[self.index]
+            if self.direction == -1:
+                self.image = self.images_left[self.index]
 
         #add gravity
         self.vel_y += 1
@@ -90,7 +98,7 @@ class Player():
 
         #draw player onto screen
         screen.blit(self.image, self.rect)
-        
+        pygame.draw.rect(screen, (255, 0, 0), self.rect, 2)
 
 
 
@@ -126,6 +134,7 @@ class World():
     def draw(self):
         for tile in self.tile_list:
             screen.blit(tile[0], tile[1])
+            pygame.draw.rect(screen, (255, 0, 0), tile[1], 2)
 
 
 
