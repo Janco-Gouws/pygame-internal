@@ -15,12 +15,17 @@ pygame.display.set_caption("Platformer")
 #define game variables
 title_size = 50
 game_over = 0
+main_menu = True
 
 
 #load images
 sun_img = pygame.image.load('platformer_assets/img/sun.png')
 bg_img = pygame.image.load('platformer_assets/img/sky.png')
 restart_img = pygame.image.load('platformer_assets/img/restart_btn.png')
+start_img = pygame.image.load('platformer_assets/img/start_btn.png')
+exit_img = pygame.image.load('platformer_assets/img/exit_btn.png')
+menu_bg = pygame.image.load('platformer_assets/img/main.menu.png')
+menu_bg = pygame.transform.scale(menu_bg, (screen_width, screen_height))
 
 
 
@@ -216,7 +221,10 @@ class World():
     def draw(self):
         for tile in self.tile_list:
             screen.blit(tile[0], tile[1])
-            pygame.draw.rect(screen, (255, 255, 255), tile[1], 1)
+            pygame.draw.line(screen, (255, 255, 255), tile[1].topleft, tile[1].topright, 1)
+            pygame.draw.line(screen, (255, 255, 255), tile[1].topright, tile[1].bottomright, 1)
+            pygame.draw.line(screen, (255, 255, 255), tile[1].bottomright, tile[1].bottomleft, 1)
+            pygame.draw.line(screen, (255, 255, 255), tile[1].bottomleft, tile[1].topleft, 1)
 
 
 
@@ -284,31 +292,42 @@ world = World(world_data)
 
 #create buttons
 restart_button = Button(screen_width // 2 - 50, screen_height // 2 + 100, restart_img)
+start_button = Button(screen_width // 2 - 350, screen_height // 2, start_img)
+exit_button = Button(screen_width // 2 + 150, screen_height // 2, exit_img)
 
 run = True
 while run:
     
     clock.tick(fps)
 
-    screen.blit(bg_img, (0, 0))
-    screen.blit(sun_img, (100, 100))
+    if main_menu == True:
+        screen.blit(menu_bg, (0, 0))
+    else:
+        screen.blit(bg_img, (0, 0))
+        screen.blit(sun_img, (100, 100))
 
-    world.draw()
+    if main_menu == True:
+        if exit_button.draw():
+            run = False
+        if start_button.draw():
+            main_menu = False
+    else:
+        world.draw()
 
-    if game_over == 0:
-        blob_group.update()
-    
-    blob_group.draw(screen)
-    lava_group.update()
-    lava_group.draw(screen)
+        if game_over == 0:
+            blob_group.update()
+        
+        blob_group.draw(screen)
+        lava_group.update()
+        lava_group.draw(screen)
 
-    game_over = player.update(game_over)
+        game_over = player.update(game_over)
 
-    #if player has died
-    if game_over == -1:
-        if restart_button.draw():
-            player.reset(100, screen_height - 130)
-            game_over = 0
+        #if player has died
+        if game_over == -1:
+            if restart_button.draw():
+                player.reset(100, screen_height - 130)
+                game_over = 0
 
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
