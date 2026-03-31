@@ -22,7 +22,7 @@ font_score = pygame.font.SysFont('Bauhaus 93', 30)
 tile_size = 50
 game_over = 0
 main_menu = True
-level = 0
+level = 1
 max_levels = 7
 score = 0
 
@@ -48,6 +48,7 @@ def draw_text(text, font, text_col, x, y):
 def reset_level(level):
     player.reset(100, screen_height - 130)
     blob_group.empty()
+    platform_group.empty()
     lava_group.empty()
     exit_group.empty()
 
@@ -99,6 +100,7 @@ class Player():
         dx = 0
         dy = 0
         walk_cooldown = 5
+        col_tresh = 20
 
         if game_over == 0:
             #get keypresses
@@ -173,7 +175,28 @@ class Player():
             #check for collision with exit
             if pygame.sprite.spritecollide(self, exit_group, False):
                 game_over = 1
-    
+
+            #check for collision with moving platforms
+            for platform in platform_group:
+                #check collision in x direction
+                if platform.rect.colliderect(self.rect.x + dx, self.rect.y, self.width, self.height):
+                    dx = 0
+                #check collision in y direction
+                if platform.rect.colliderect(self.rect.x, self.rect.y + dy, self.width, self.height):
+                    #check if below platform i.e. jumping
+                    if abs((self.rect.top + dy) - platform.rect.bottom) < col_tresh:
+                        self.vel_y = 0
+                        dy = platform.rect.bottom - self.rect.top
+                    #check if above platform i.e. falling
+                    elif abs((self.rect.bottom + dy) - platform.rect.top) < col_tresh:
+                        self.rect.bottom = platform.rect.top - 0.1
+                        self.in_air = False
+                        dy = 0
+                        #move with the platform
+                        if platform.move_x != 0:
+                            self.rect.x += platform.move_direction * platform.move_x
+
+
             #update player coordinates
             self.rect.x += dx
             self.rect.y += dy
@@ -187,7 +210,6 @@ class Player():
 
         #draw player onto screen
         screen.blit(self.image, self.rect)
-        pygame.draw.rect(screen, (255, 255, 255), self.rect, 1)
 
         return game_over
 
@@ -255,9 +277,6 @@ class World():
                 if tile == 6:                    
                     lava = Lava(col_count * tile_size, row_count * tile_size + (tile_size // 2))
                     lava_group.add(lava)
-                if tile == 7:
-                    coin = Coin(col_count * tile_size + (tile_size // 2), row_count * tile_size + (tile_size // 2))
-                    coin_group.add(coin)
                 if tile == 8:
                     exit = Exit(col_count * tile_size, row_count * tile_size - (tile_size // 2))
                     exit_group.add(exit)
@@ -267,10 +286,6 @@ class World():
     def draw(self):
         for tile in self.tile_list:
             screen.blit(tile[0], tile[1])
-            pygame.draw.line(screen, (255, 255, 255), tile[1].topleft, tile[1].topright, 1)
-            pygame.draw.line(screen, (255, 255, 255), tile[1].topright, tile[1].bottomright, 1)
-            pygame.draw.line(screen, (255, 255, 255), tile[1].bottomright, tile[1].bottomleft, 1)
-            pygame.draw.line(screen, (255, 255, 255), tile[1].bottomleft, tile[1].topleft, 1)
 
 
 
@@ -309,7 +324,7 @@ class Platform(pygame.sprite.Sprite):
         self.rect.x += self.move_direction * self.move_x
         self.rect.y += self.move_direction * self.move_y
         self.move_counter += 1
-        if abs(self.move_counter) > 50:
+        if abs(self.move_counter) > 64:
             self.move_direction *= -1
             self.move_counter *= -1
 
@@ -322,15 +337,6 @@ class Lava(pygame.sprite.Sprite):
         self.rect = self.image.get_rect()
         self.rect.x = x
         self.rect.y = y
-
-
-class Coin(pygame.sprite.Sprite):
-    def __init__(self, x, y):
-        pygame.sprite.Sprite.__init__(self)
-        img = pygame.image.load('platformer_assets/img/coin.png')
-        self.image = pygame.transform.scale(img, (tile_size // 2, tile_size // 2))
-        self.rect = self.image.get_rect()
-        self.rect.center = (x, y)
 
 
 class Exit(pygame.sprite.Sprite):
@@ -350,11 +356,7 @@ blob_group = pygame.sprite.Group()
 platform_group = pygame.sprite.Group()
 lava_group = pygame.sprite.Group()
 exit_group = pygame.sprite.Group()
-coin_group = pygame.sprite.Group()
 
-#create dummy coin for showing the score
-score_coin = Coin(tile_size // 2, tile_size // 2)
-coin_group.add(score_coin)
 
 
 #load in level data and create world
@@ -391,10 +393,7 @@ while run:
             blob_group.update()
             platform_group.update()
             #update score
-            #check for collision with coins
-            if pygame.sprite.spritecollide(player, coin_group, True):
-                score += 1
-            draw_text('X ' + str(score), font_score, white, tile_size - 10, 10)
+            draw_text('Level ' + str(level), font_score, white, tile_size + 50, 10)
 
         
         blob_group.draw(screen)
@@ -403,8 +402,6 @@ while run:
         lava_group.draw(screen)
         exit_group.update()
         exit_group.draw(screen)
-        coin_group.update()
-        coin_group.draw(screen)
 
         game_over = player.update(game_over)
 
