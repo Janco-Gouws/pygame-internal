@@ -22,6 +22,7 @@ pygame.display.set_caption("Platformer")
 #define font
 font = pygame.font.SysFont('Bauhaus 93', 70)
 font_score = pygame.font.SysFont('Bauhaus 93', 30)
+title_font = pygame.font.SysFont('Bauhaus 93', 120)
 
 #define game variables
 tile_size = 50
@@ -41,6 +42,7 @@ player_name = ""
 #define colours
 white = (255, 255, 255)
 blue = (0, 0, 255)
+black = (0, 0, 0)
 
 #load images
 sun_img = pygame.image.load('platformer_assets/img/sun.png')
@@ -66,7 +68,7 @@ new_height = int(leaderboard_img.get_height() * scale)
 leaderboard_img = pygame.transform.scale(leaderboard_img, (new_width, new_height))
 #have the buttons centered
 center_x = screen_width // 2
-button_y = screen_height // 2 - start_img.get_height() // 2
+button_y = screen_height // 2 - 50
 spacing = 200     
 
 #position leaderboard image
@@ -86,7 +88,16 @@ game_over_fx.set_volume(0.5)
 
 
 
-def draw_text(text, font, text_col, x, y):
+def draw_text(text, font, text_col, x, y, outline_col=None):
+    if outline_col:
+        outline = font.render(text, True, outline_col)
+
+        # draw outline in 8 directions (smoother)
+        for dx in [-2, 0, 1]:
+            for dy in [-2, 0, 1]:
+                if dx != 0 or dy != 0:
+                    screen.blit(outline, (x + dx, y + dy))
+
     img = font.render(text, True, text_col)
     screen.blit(img, (x, y))
 
@@ -479,6 +490,17 @@ while run:
     if main_menu:
         screen.blit(menu_bg, (0, 0))
 
+        # --- TITLE ---
+        draw_text("PIXEL ASCENT", title_font, blue, center_x - 350, button_y - 260)
+
+        # --- CONTROLS TEXT ---
+        draw_text("Controls:", font_score, white, 20, screen_height - 180, black)
+        draw_text("LEFT / RIGHT = Move", font_score, white, 20, screen_height - 150, black)
+        draw_text("SPACE = Jump", font_score, white, 20, screen_height - 120, black)
+        draw_text("R = Restart", font_score, white, 20, screen_height - 90, black)
+        draw_text("ESC = Menu", font_score, white, 20, screen_height - 60, black)
+
+        # --- BUTTONS ---
         if exit_button.draw():
             run = False
 
@@ -503,7 +525,7 @@ while run:
             text = f"{entry['name']} - {entry['time']:.2f}"
             text_width = font_score.size(text)[0]
 
-            draw_text(text, font_score, white,
+            draw_text(text, font_score, black,
                     center_x - text_width // 2, y)
 
             y += 40
