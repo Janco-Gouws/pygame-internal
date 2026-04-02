@@ -4,6 +4,7 @@ from pygame import mixer
 import pickle
 from os import path
 import time as pytime
+import json
 
 pygame.mixer.pre_init(44100, -16, 2, 512)
 mixer.init()
@@ -26,12 +27,15 @@ font_score = pygame.font.SysFont('Bauhaus 93', 30)
 tile_size = 50
 game_over = 0
 main_menu = True
+leaderboard_menu = False
 level = 1
 max_levels = 7
 score = 0
 start_time = 0
 final_time = 0
 timer_running = False
+entering_name = False
+player_name = ""
 
 
 #define colours
@@ -46,6 +50,29 @@ start_img = pygame.image.load('platformer_assets/img/start_btn.png')
 exit_img = pygame.image.load('platformer_assets/img/exit_btn.png')
 menu_bg = pygame.image.load('platformer_assets/img/main.menu.png')
 menu_bg = pygame.transform.scale(menu_bg, (screen_width, screen_height))
+leaderboard_img = pygame.image.load("platformer_assets/img/leaderboard_btn.png").convert_alpha()
+rect = leaderboard_img.get_bounding_rect()  # finds non-transparent area
+leaderboard_img = leaderboard_img.subsurface(rect).copy()
+
+
+#scale leaderboard image
+target_width = start_img.get_width() * 2  # or 1.5 if you want smaller
+
+scale = target_width / leaderboard_img.get_width()
+
+new_width = int(leaderboard_img.get_width() * scale)
+new_height = int(leaderboard_img.get_height() * scale)
+
+leaderboard_img = pygame.transform.scale(leaderboard_img, (new_width, new_height))
+#have the buttons centered
+center_x = screen_width // 2
+button_y = screen_height // 2 - start_img.get_height() // 2
+spacing = 200     
+
+#position leaderboard image
+leaderboard_x = center_x - leaderboard_img.get_width() // 2
+leaderboard_y = button_y + start_img.get_height() + 40
+
 
 #load sounds
 pygame.mixer.music.load('platformer_assets/img/music.wav')
@@ -58,6 +85,7 @@ game_over_fx = pygame.mixer.Sound('platformer_assets/img/game_over.wav')
 game_over_fx.set_volume(0.5)
 
 
+
 def draw_text(text, font, text_col, x, y):
     img = font.render(text, True, text_col)
     screen.blit(img, (x, y))
@@ -67,6 +95,7 @@ def reset_level(level):
     player.reset(100, screen_height - 130)
     blob_group.empty()
     platform_group.empty()
+    coin_group.empty()
     lava_group.empty()
     exit_group.empty()
 
@@ -77,6 +106,18 @@ def reset_level(level):
     world = World(world_data)
 
     return world
+
+def load_leaderboard():
+    try:
+        with open("leaderboard.json", "r") as f:
+            return json.load(f)
+    except:
+        return []
+
+def save_leaderboard(data):
+    with open("leaderboard.json", "w") as f:
+        json.dump(data, f)
+
 
 class Button():
     def __init__(self, x, y, image):
@@ -411,29 +452,73 @@ world = World(world_data)
 
 #create buttons
 restart_button = Button(screen_width // 2 - 50, screen_height // 2 + 125, restart_img)
-start_button = Button(screen_width // 2 - 350, screen_height // 2, start_img)
-exit_button = Button(screen_width // 2 + 150, screen_height // 2, exit_img)
+start_button = Button(
+    center_x - spacing - start_img.get_width() // 2,
+    button_y,
+    start_img
+)
+
+exit_button = Button(
+    center_x + spacing - exit_img.get_width() // 2,
+    button_y,
+    exit_img
+)
+
+leaderboard_button = Button(leaderboard_x, leaderboard_y, leaderboard_img)
+
+exit_img_small = pygame.transform.scale(exit_img, (150, 60))
+back_button = Button(screen_width // 2 - 75, screen_height - 150, exit_img_small)
+
+
 
 run = True
 while run:
     
     clock.tick(fps)
 
-    if main_menu == True:
+    if main_menu:
         screen.blit(menu_bg, (0, 0))
-    else:
-        screen.blit(bg_img, (0, 0))
-        screen.blit(sun_img, (100, 100))
 
-    if main_menu == True:
         if exit_button.draw():
             run = False
+
         if start_button.draw():
             main_menu = False
             start_time = pytime.time()
             timer_running = True
+
+        if leaderboard_button.draw():
+            main_menu = False
+            leaderboard_menu = True
+    
+    elif leaderboard_menu:
+        screen.blit(menu_bg, (0, 0))
+
+        leaderboard = load_leaderboard()
+
+        draw_text("LEADERBOARD", font, blue, center_x - 200, 100)
+
+        y = 200
+        for entry in leaderboard:
+            text = f"{entry['name']} - {entry['time']:.2f}"
+            text_width = font_score.size(text)[0]
+
+            draw_text(text, font_score, white,
+                    center_x - text_width // 2, y)
+
+            y += 40
+
+        if back_button.draw():
+            leaderboard_menu = False
+            main_menu = True
+
+
     else:
+        screen.blit(bg_img, (0, 0))
+        screen.blit(sun_img, (100, 100))
+
         world.draw()
+
         if game_over == 0:
             blob_group.update()
             platform_group.update()
@@ -462,7 +547,7 @@ while run:
             if timer_running:
                 final_time = pytime.time() - start_time
                 timer_running = False
-            if restart_button.draw():
+            if not entering_name and restart_button.draw():
                 world_data = []
                 world = reset_level(level)
                 game_over = 0
@@ -485,9 +570,24 @@ while run:
                     final_time = pytime.time() - start_time
                     timer_running = False
 
+                    leaderboard = sorted(load_leaderboard(), key=lambda x: x["time"])
+                    best_time = leaderboard[0]["time"] if leaderboard else None
+
+                    if best_time is None or final_time < best_time:
+                        entering_name = True
+
                 draw_text('YOU WIN!', font, blue, (screen_width // 2) - 150, screen_height // 2)
                 draw_text(f'Final Time: {final_time:.2f}', font_score, white, (screen_width // 2) - 100, screen_height // 2 + 80)
-                if restart_button.draw():
+                if entering_name:
+                    draw_text("NEW BEST TIME!", font, blue,
+                            (screen_width // 2) - 200, screen_height // 2 - 100)
+
+                    draw_text("Enter Name:", font_score, white,
+                            (screen_width // 2) - 100, screen_height // 2 + 140)
+
+                    draw_text(player_name, font_score, white,
+                            (screen_width // 2) - 100, screen_height // 2 + 180)
+                if not entering_name and restart_button.draw():
                     level = 1
                     #reset level
                     world_data = []
@@ -502,8 +602,49 @@ while run:
         if event.type == pygame.QUIT:
             run = False
 
+        # --- NAME INPUT SYSTEM ---
+        if entering_name and event.type == pygame.KEYDOWN:
+            if event.key == pygame.K_RETURN:
+                leaderboard = load_leaderboard()
+
+                # remove ALL entries with same name
+                leaderboard = [entry for entry in leaderboard if entry["name"] != player_name]
+
+                # add the new score
+                leaderboard.append({"name": player_name, "time": final_time})
+
+                # sort and keep top 5
+                leaderboard = sorted(leaderboard, key=lambda x: x["time"])[:5]
+
+                save_leaderboard(leaderboard)
+
+                entering_name = False
+                player_name = ""
+
+
+            elif event.key == pygame.K_BACKSPACE:
+                player_name = player_name[:-1]
+
+            else:
+                if len(player_name) < 10:
+                    if event.unicode.isalnum():
+                        player_name += event.unicode
+            
+
         if event.type == pygame.KEYDOWN:
-            if event.key == pygame.K_r and main_menu == False:
+            if event.key == pygame.K_ESCAPE:
+                main_menu = True
+                leaderboard_menu = False
+
+                # reset game state
+                level = 1
+                world_data = []
+                world = reset_level(level)
+                game_over = 0
+                score = 0
+
+                timer_running = False
+            if event.key == pygame.K_r and main_menu == False and not entering_name:
 
                 # restart level
                 world_data = []
