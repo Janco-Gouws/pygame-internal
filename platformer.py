@@ -3,6 +3,7 @@ from pygame.locals import *
 from pygame import mixer
 import pickle
 from os import path
+import time as pytime
 
 pygame.mixer.pre_init(44100, -16, 2, 512)
 mixer.init()
@@ -28,6 +29,9 @@ main_menu = True
 level = 1
 max_levels = 7
 score = 0
+start_time = 0
+final_time = 0
+timer_running = False
 
 
 #define colours
@@ -117,6 +121,13 @@ class Player():
         col_tresh = 20
 
         if game_over == 0:
+            # --- TIMER ---
+            if timer_running:
+                current_time = pytime.time() - start_time
+            else:
+                current_time = final_time
+
+            draw_text(f'Time: {current_time:.2f}', font_score, white, screen_width - 200, 10)
             #get keypresses
             key = pygame.key.get_pressed()
             if key[pygame.K_SPACE] and self.jumped == False and self.in_air == False:
@@ -399,7 +410,7 @@ if path.exists(f'platformer_assets/level{level}_data'):
 world = World(world_data)
 
 #create buttons
-restart_button = Button(screen_width // 2 - 50, screen_height // 2 + 100, restart_img)
+restart_button = Button(screen_width // 2 - 50, screen_height // 2 + 125, restart_img)
 start_button = Button(screen_width // 2 - 350, screen_height // 2, start_img)
 exit_button = Button(screen_width // 2 + 150, screen_height // 2, exit_img)
 
@@ -419,9 +430,10 @@ while run:
             run = False
         if start_button.draw():
             main_menu = False
+            start_time = pytime.time()
+            timer_running = True
     else:
         world.draw()
-
         if game_over == 0:
             blob_group.update()
             platform_group.update()
@@ -447,11 +459,17 @@ while run:
 
         #if player has died
         if game_over == -1:
+            if timer_running:
+                final_time = pytime.time() - start_time
+                timer_running = False
             if restart_button.draw():
                 world_data = []
                 world = reset_level(level)
                 game_over = 0
                 score = 0
+
+                start_time = pytime.time() - final_time
+                timer_running = True
 
         #if player has completed the level
         if game_over == 1:
@@ -463,7 +481,12 @@ while run:
                 world = reset_level(level)
                 game_over = 0
             else:
+                if timer_running:
+                    final_time = pytime.time() - start_time
+                    timer_running = False
+
                 draw_text('YOU WIN!', font, blue, (screen_width // 2) - 150, screen_height // 2)
+                draw_text(f'Final Time: {final_time:.2f}', font_score, white, (screen_width // 2) - 100, screen_height // 2 + 80)
                 if restart_button.draw():
                     level = 1
                     #reset level
@@ -472,9 +495,26 @@ while run:
                     game_over = 0
                     score = 0   
 
+                    start_time = pytime.time()
+                    timer_running = True
+
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
             run = False
+
+        if event.type == pygame.KEYDOWN:
+            if event.key == pygame.K_r and main_menu == False:
+
+                # restart level
+                world_data = []
+                world = reset_level(level)
+                game_over = 0
+                score = 0
+
+                # resume timer (only if it was stopped)
+                if not timer_running:
+                    start_time = pytime.time() - final_time
+                    timer_running = True
 
     pygame.display.update()
 
