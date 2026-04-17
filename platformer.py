@@ -187,23 +187,25 @@ class Player():
                 self.vel_y = -15
                 self.jumped = True
             if key[pygame.K_SPACE] == False:
-                self.jumped = False    
-            if key[pygame.K_LEFT]:
+                self.jumped = False
+
+            if key[pygame.K_LEFT] or key[pygame.K_a]:
                 dx -= 5
                 self.counter += 1
                 self.direction = -1
-            if key[pygame.K_RIGHT]:
+
+            if key[pygame.K_RIGHT] or key[pygame.K_d]:
                 dx += 5
                 self.counter += 1
                 self.direction = 1
-            if key[pygame.K_LEFT] == False and key[pygame.K_RIGHT] == False:
+
+            if (key[pygame.K_LEFT] == False and key[pygame.K_a] == False) and (key[pygame.K_RIGHT] == False and key[pygame.K_d] == False):
                 self.counter = 0
                 self.index = 0
                 if self.direction == 1:
                     self.image = self.images_right[self.index]
                 if self.direction == -1:
                     self.image = self.images_left[self.index]
-
 
             #handle animation
             if self.counter > walk_cooldown:
@@ -495,7 +497,7 @@ while run:
 
         # --- CONTROLS TEXT ---
         draw_text("Controls:", font_score, white, 20, screen_height - 180, black)
-        draw_text("LEFT / RIGHT = Move", font_score, white, 20, screen_height - 150, black)
+        draw_text("A / D or LEFT / RIGHT arrow keys = Move", font_score, white, 20, screen_height - 150, black)
         draw_text("SPACE = Jump", font_score, white, 20, screen_height - 120, black)
         draw_text("R = Restart", font_score, white, 20, screen_height - 90, black)
         draw_text("ESC = Menu", font_score, white, 20, screen_height - 60, black)
