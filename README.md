@@ -54,15 +54,17 @@ python -m pip install pygame
 
 Follow these steps:
 
-### 1. Open the project
+### 1. Download the release
+Download the latest release (or any release if you want) of Pixel Acsent on my Github.
+
+### 2. Open the project
 Open this folder in VS Code.
 
-### 2. Open the terminal
+### 3. Open the terminal
 Go to **Terminal → New Terminal**
 
----
-
 ### 4. Run the game
+Type in the command:
 ```
 python platformer.py
 ```
