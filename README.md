@@ -62,6 +62,7 @@ Go to **Terminal → New Terminal**
 
 ---
 
-### 3. Create a virtual environment
-```powershell
-python -m venv .venv
+### 4. Run the game
+```
+python platformer.py
+```
