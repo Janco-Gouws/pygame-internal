@@ -49,3 +49,19 @@ If the project later needs a package such as requests, you would install it like
 ```
 python -m pip install pygame
 ```
+
+## ▶ Running the Game (VS Code)
+
+Follow these steps:
+
+### 1. Open the project
+Open this folder in VS Code.
+
+### 2. Open the terminal
+Go to **Terminal → New Terminal**
+
+---
+
+### 3. Create a virtual environment
+```powershell
+python -m venv .venv
